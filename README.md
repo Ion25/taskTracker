@@ -2,8 +2,8 @@
 
 > Sistema completo de gestión de tareas con API REST y widget de clima en tiempo real.
 
-[![Live Demo](https://img.shields.io/badge/Demo-Live-brightgreen)](https://tasktracker-portfolio.fly.dev/app) 
-[![API Docs](https://img.shields.io/badge/API-Swagger-orange)](https://tasktracker-portfolio.fly.dev/docs)
+[![Live Demo](https://img.shields.io/badge/Demo-Live-brightgreen)](https://tu-tasktracker.onrender.com/app) 
+[![API Docs](https://img.shields.io/badge/API-Swagger-orange)](https://tu-tasktracker.onrender.com/docs)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://hub.docker.com)
 
 ## Stack Técnico
@@ -22,7 +22,7 @@
 
 **DevOps & Deploy**
 - **Docker** - Containerización multiplataforma
-- **Fly.io** - Deploy en la nube
+- **Render/Koyeb** - Deploy gratuito en la nube
 - **GitHub Actions** - CI/CD (opcional)
 
 ## Características
@@ -38,12 +38,16 @@
 
 ## Demo en Vivo
 
-**Aplicación:** [https://tasktracker-portfolio.fly.dev/app](https://tasktracker-portfolio.fly.dev/app)  
-**API Docs:** [https://tasktracker-portfolio.fly.dev/docs](https://tasktracker-portfolio.fly.dev/docs)
+**Aplicación:** [https://tu-tasktracker.onrender.com/app](https://tu-tasktracker.onrender.com/app)  
+**API Docs:** [https://tu-tasktracker.onrender.com/docs](https://tu-tasktracker.onrender.com/docs)
+
+> **Nota:** Actualiza estas URLs después del deploy en Render o Koyeb
 
 ## Inicio Rápido
 
 ### Opción 1: Docker (Recomendado - Más Fácil)
+
+> ✅ **Render Ready:** Este Dockerfile está optimizado y probado para Render.com
 
 ```bash
 # 1. Clonar repositorio
@@ -63,6 +67,10 @@ docker-compose ps
 ```bash
 # Para detener
 docker-compose down
+
+# Para probar build individual (como lo hace Render)
+docker build -t tasktracker .
+docker run -p 8000:8000 tasktracker
 ```
 
 ### Opción 2: Instalación Local
@@ -138,7 +146,8 @@ tasktracker/
 │   └── script.js        # Lógica JavaScript
 ├── Dockerfile           # Container configuration
 ├── docker-compose.yml   # Local development
-├── fly.toml            # Deploy configuration
+├── render.yaml          # Render.com deploy config
+├── .koyeb/config.yaml   # Koyeb.com deploy config
 └── requirements.txt    # Python dependencies
 ```
 
@@ -156,16 +165,73 @@ tasktracker/
 
 **Documentación completa:** `/docs` (Swagger UI)
 
-## Deploy en Fly.io
+## 🚀 Deploy en la Nube (GRATIS)
 
-```bash
-# Instalar Fly CLI
-curl -L https://fly.io/install.sh | sh
+### Opción 1: Render.com (Recomendado)
 
-# Autenticarse y desplegar
-fly auth login
-./deploy.sh
-```
+1. **Fork/Clona** tu repositorio en GitHub
+2. **Conecta Render** a GitHub:
+   - Ve a [render.com](https://render.com)
+   - Crea cuenta gratuita
+   - Conecta tu cuenta de GitHub
+
+3. **Crear Web Service**:
+   - Click "New +" → "Web Service"
+   - Selecciona tu repositorio `tasktracker`
+   - **Environment:** `Docker`
+   - **Region:** Oregon (más rápida)
+   - **Instance Type:** Free
+
+4. **Variables de entorno** (opcional):
+   ```
+   WEATHERAPI_KEY = tu_weatherapi_key
+   OPENWEATHER_API_KEY = tu_openweather_key
+   ```
+
+5. **Deploy automático**: Render detectará `render.yaml` y desplegará automáticamente
+
+**URL final:** `https://tu-tasktracker.onrender.com/app`
+
+### Opción 2: Koyeb.com
+
+1. **Preparar repositorio**:
+   ```bash
+   git add .
+   git commit -m "Ready for Koyeb deploy"
+   git push origin main
+   ```
+
+2. **Deploy en Koyeb**:
+   - Ve a [koyeb.com](https://koyeb.com)
+   - Crea cuenta gratuita
+   - Click "Create App"
+   - Selecciona "GitHub repository"
+   - Elige tu repo `tasktracker`
+
+3. **Configuración**:
+   - **Build Type:** Dockerfile
+   - **Dockerfile path:** `./Dockerfile`
+   - **Port:** 8000
+   - **Instance:** Nano (gratis)
+
+4. **Variables de entorno** (opcional):
+   ```
+   WEATHERAPI_KEY = tu_weatherapi_key
+   OPENWEATHER_API_KEY = tu_openweather_key
+   ```
+
+**URL final:** `https://tu-tasktracker-[id].koyeb.app/app`
+
+### 🎯 Ventajas de cada plataforma:
+
+| Característica | Render | Koyeb |
+|---------------|--------|-------|
+| **Tiempo gratis/mes** | 750 horas | 2.5 millones segundo |
+| **Deploy automático** | ✅ | ✅ |
+| **Custom domains** | ✅ | ✅ |
+| **SSL gratuito** | ✅ | ✅ |
+| **Docker support** | ✅ | ✅ |
+| **Sleep en inactividad** | Sí (15min) | Sí (scale to zero) |
 
 ## Variables de Entorno (Opcional)
 

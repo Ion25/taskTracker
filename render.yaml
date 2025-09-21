@@ -1,0 +1,23 @@
+version: "1"
+services:
+  - type: web
+    name: tasktracker
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    port: 8000
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: ENV
+        value: production
+      - key: WEATHERAPI_KEY
+        sync: false
+      - key: OPENWEATHER_API_KEY
+        sync: false
+    autoDeploy: true
+    buildCommand: ""
+    startCommand: ""

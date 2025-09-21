@@ -1,0 +1,25 @@
+version: v1
+definition:
+  name: tasktracker
+  type: web
+  ports:
+    - port: 8000
+      protocol: http
+  scalings:
+    min: 0
+    max: 1
+  regions:
+    - fra
+  env:
+    - key: PORT
+      value: "8000"
+    - key: ENV
+      value: production
+  docker:
+    image: tasktracker
+    dockerfile: ./Dockerfile
+  health_checks:
+    - port: 8000
+      protocol: http
+      path: /
+  instance_type: nano
