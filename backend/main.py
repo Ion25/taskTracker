@@ -113,10 +113,12 @@ async def root():
         "version": settings.APP_VERSION,
         "environment": settings.ENV,
         "docs": "/docs",
+        "app": "/app",
         "endpoints": {
             "tasks": "/api/tasks",
             "weather": "/api/weather",
-            "stats": "/api/stats"
+            "stats": "/api/stats",
+            "logs": "/api/logs"
         }
     }
 
