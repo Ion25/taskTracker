@@ -160,3 +160,25 @@ Thumbs.db
 
 # Fly.io
 .fly/
+
+# Scripts de desarrollo local (innecesarios para Render)
+*.sh
+demo_tasktracker.sh
+deploy.sh
+github-setup.sh
+run_tasktracker.sh
+set_city.sh
+start_server.sh
+test_weather.sh
+
+# Docker compose para desarrollo local
+docker-compose.yml
+
+# Configuraciones de otras plataformas
+.koyeb/
+render.yaml
+
+# Archivos temporales de desarrollo
+*.tmp
+*.bak
+.env.local
