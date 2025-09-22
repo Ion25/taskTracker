@@ -10,8 +10,9 @@ class TaskTracker {
         this.editingTaskId = null;
         this.weatherUpdateInterval = null;
         
-        // URLs de la API (ajustar según el puerto del backend)
-        this.API_BASE = 'http://localhost:8000/api';
+        // URLs dinámicas de la API (funciona tanto en localhost como en producción)
+        const currentHost = window.location.origin;
+        this.API_BASE = `${currentHost}/api`;
         
         this.initializeApp();
     }
@@ -335,7 +336,8 @@ class TaskTracker {
     // === DOCUMENTACIÓN ===
     
     openDocs() {
-        window.open('http://localhost:8000/docs', '_blank');
+        const currentHost = window.location.origin;
+        window.open(`${currentHost}/docs`, '_blank');
     }
     
     // === ESTADÍSTICAS ===
