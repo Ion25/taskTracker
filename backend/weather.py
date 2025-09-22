@@ -67,6 +67,53 @@ class WeatherService:
         print(f"[Weather] Usando datos de prueba para {city} (configurar API keys para datos reales)")
         return self._get_demo_weather_data(city)
     
+    async def get_weather_by_coords(self, lat: float, lon: float) -> Dict[str, Any]:
+        """
+        Obtiene información del clima para coordenadas usando múltiples APIs
+        """
+        # Verificar cache
+        cache_key = f"weather_{lat}_{lon}"
+        if cache_key in self.cache:
+            cached_data, timestamp = self.cache[cache_key]
+            if datetime.now() - timestamp < self.cache_duration:
+                return cached_data
+
+        # Intentar diferentes APIs en orden de preferencia
+        weather_data = None
+        
+        # 1. Intentar WeatherAPI (más generoso)
+        if self.weatherapi_key:
+            weather_data = await self._get_weatherapi_data_coords(lat, lon)
+            if weather_data and weather_data.get("success"):
+                return self._cache_and_return(cache_key, weather_data)
+        
+        # 2. Intentar OpenWeatherMap
+        if self.openweather_key:
+            weather_data = await self._get_openweather_data_coords(lat, lon)
+            if weather_data and weather_data.get("success"):
+                return self._cache_and_return(cache_key, weather_data)
+        
+        # 3. Si no hay APIs configuradas, usar API pública gratuita
+        # Necesitamos convertir coords a ciudad para wttr.in
+        try:
+            # Usar reverse geocoding simple o fallback a Lima
+            city = await self._coords_to_city(lat, lon)
+            weather_data = await self._get_free_weather_data(city)
+            if weather_data and weather_data.get("success"):
+                # Actualizar con coordenadas reales
+                weather_data["lat"] = lat
+                weather_data["lon"] = lon
+                return self._cache_and_return(cache_key, weather_data)
+        except:
+            pass
+        
+        # 4. Fallback a datos de prueba con coordenadas
+        print(f"[Weather] Usando datos de prueba para coords {lat}, {lon}")
+        demo_data = self._get_demo_weather_data("Ubicación actual")
+        demo_data["lat"] = lat
+        demo_data["lon"] = lon
+        return demo_data
+    
     def _cache_and_return(self, cache_key: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Guarda en cache y devuelve los datos"""
         self.cache[cache_key] = (data, datetime.now())
@@ -191,6 +238,126 @@ class WeatherService:
         except Exception as e:
             print(f"[Weather] Error en API gratuita: {str(e)}")
             return None
+    
+    async def _get_weatherapi_data_coords(self, lat: float, lon: float) -> Optional[Dict[str, Any]]:
+        """Consulta WeatherAPI.com usando coordenadas"""
+        try:
+            params = {
+                "key": self.weatherapi_key,
+                "q": f"{lat},{lon}",
+                "lang": "es"
+            }
+            
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(self.weatherapi_url, params=params)
+                response.raise_for_status()
+                
+            data = response.json()
+            
+            # Obtener zona horaria local del usuario
+            from datetime import datetime, timezone
+            import pytz
+            
+            try:
+                # Intentar obtener zona horaria de la respuesta
+                tz_info = data["location"].get("tz_id", "UTC")
+                local_tz = pytz.timezone(tz_info)
+                local_time = datetime.now(local_tz)
+                time_str = local_time.strftime("%H:%M")
+            except:
+                # Fallback a hora local del servidor
+                time_str = datetime.now().strftime("%H:%M")
+            
+            processed_data = {
+                "ciudad": f"{data['location']['name']}, {data['location']['country']}",
+                "temperatura": round(data["current"]["temp_c"]),
+                "descripcion": data["current"]["condition"]["text"],
+                "icono": self._weatherapi_icon_to_emoji(data["current"]["condition"]["code"]),
+                "humedad": data["current"]["humidity"],
+                "sensacion_termica": round(data["current"]["feelslike_c"]),
+                "ultima_actualizacion": time_str,
+                "timestamp": datetime.now().isoformat(),
+                "success": True,
+                "source": "WeatherAPI (GPS)",
+                "lat": lat,
+                "lon": lon,
+                "timezone": data["location"].get("tz_id", "UTC")
+            }
+            
+            print(f"[Weather] Clima actualizado desde WeatherAPI (GPS): {processed_data['ciudad']} - {processed_data['temperatura']}°C")
+            
+            return processed_data
+            
+        except Exception as e:
+            print(f"[Weather] Error en WeatherAPI (coords): {str(e)}")
+            return None
+    
+    async def _get_openweather_data_coords(self, lat: float, lon: float) -> Optional[Dict[str, Any]]:
+        """Consulta OpenWeatherMap usando coordenadas"""
+        try:
+            params = {
+                "lat": lat,
+                "lon": lon,
+                "appid": self.openweather_key,
+                "units": "metric",
+                "lang": "es"
+            }
+            
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(self.openweather_url, params=params)
+                response.raise_for_status()
+                
+            data = response.json()
+            
+            # Calcular hora local usando timezone offset
+            from datetime import datetime, timezone, timedelta
+            try:
+                offset_seconds = data.get("timezone", 0)
+                local_tz = timezone(timedelta(seconds=offset_seconds))
+                local_time = datetime.now(local_tz)
+                time_str = local_time.strftime("%H:%M")
+            except:
+                time_str = datetime.now().strftime("%H:%M")
+            
+            processed_data = {
+                "ciudad": f"{data['name']}, {data['sys']['country']}",
+                "temperatura": round(data["main"]["temp"]),
+                "descripcion": data["weather"][0]["description"].title(),
+                "icono": self._openweather_icon_to_emoji(data["weather"][0]["icon"]),
+                "humedad": data["main"]["humidity"],
+                "sensacion_termica": round(data["main"]["feels_like"]),
+                "ultima_actualizacion": time_str,
+                "timestamp": datetime.now().isoformat(),
+                "success": True,
+                "source": "OpenWeatherMap (GPS)",
+                "lat": lat,
+                "lon": lon
+            }
+            
+            print(f"[Weather] Clima actualizado desde OpenWeatherMap (GPS): {processed_data['ciudad']} - {processed_data['temperatura']}°C")
+            
+            return processed_data
+            
+        except Exception as e:
+            print(f"[Weather] Error en OpenWeatherMap (coords): {str(e)}")
+            return None
+    
+    async def _coords_to_city(self, lat: float, lon: float) -> str:
+        """Convierte coordenadas a nombre de ciudad (simple reverse geocoding)"""
+        try:
+            # Usar un servicio gratuito de reverse geocoding
+            url = f"https://api.bigdatacloud.net/data/reverse-geocode-client?latitude={lat}&longitude={lon}&localityLanguage=es"
+            
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                
+            data = response.json()
+            city = data.get("city") or data.get("locality") or data.get("principalSubdivision", "Ubicación actual")
+            return city
+            
+        except:
+            return "Ubicación actual"
     
     def _get_demo_weather_data(self, city: str) -> Dict[str, Any]:
         """Datos de prueba cuando no hay API disponible"""
@@ -352,6 +519,12 @@ weather_service = WeatherService()
 
 async def get_current_weather(city: str = "Lima") -> Dict[str, Any]:
     """
-    Endpoint function para obtener el clima actual
+    Endpoint function para obtener el clima actual por nombre de ciudad
     """
     return await weather_service.get_weather(city)
+
+async def get_current_weather_by_coords(lat: float, lon: float) -> Dict[str, Any]:
+    """
+    Endpoint function para obtener el clima actual por coordenadas
+    """
+    return await weather_service.get_weather_by_coords(lat, lon)

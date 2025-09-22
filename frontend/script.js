@@ -362,17 +362,51 @@ class TaskTracker {
     
     async updateWeather() {
         try {
-            const response = await fetch(`${this.API_BASE}/weather?city=Lima`);
+            // Intentar obtener ubicación del usuario
+            let city = 'Lima'; // Fallback por defecto
+            
+            if (navigator.geolocation) {
+                try {
+                    const position = await this.getCurrentPosition();
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    
+                    // Usar coordenadas en lugar de nombre de ciudad
+                    const response = await fetch(`${this.API_BASE}/weather?lat=${lat}&lon=${lon}`);
+                    if (!response.ok) throw new Error(`Error ${response.status}`);
+                    
+                    const weather = await response.json();
+                    this.renderWeather(weather);
+                    return;
+                    
+                } catch (geoError) {
+                    console.log('Geolocalización no disponible, usando Lima como fallback');
+                }
+            }
+            
+            // Fallback: usar Lima
+            const response = await fetch(`${this.API_BASE}/weather?city=${city}`);
             if (!response.ok) throw new Error(`Error ${response.status}`);
             
             const weather = await response.json();
-            
             this.renderWeather(weather);
             
         } catch (error) {
             console.error('Error actualizando clima:', error);
             this.renderWeatherError();
         }
+    }
+    
+    // Promisificar geolocation
+    getCurrentPosition(options = {}) {
+        return new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                timeout: 10000,
+                enableHighAccuracy: true,
+                maximumAge: 300000, // Cache por 5 minutos
+                ...options
+            });
+        });
     }
     
     renderWeather(weather) {

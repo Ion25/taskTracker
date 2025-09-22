@@ -20,7 +20,7 @@ from pathlib import Path
 # Importar módulos locales
 from models import create_tables, get_db, Task, SessionLocal
 from routes import router as tasks_router
-from weather import get_current_weather
+from weather import get_current_weather, get_current_weather_by_coords
 from config import settings
 
 # Configurar aplicación FastAPI con metadatos
@@ -123,11 +123,17 @@ async def root():
     }
 
 @app.get("/api/weather")
-async def weather_endpoint(city: str = "Lima"):
+async def weather_endpoint(city: str = "Lima", lat: float = None, lon: float = None):
     """
     Endpoint para obtener información del clima
+    Soporta tanto nombre de ciudad como coordenadas lat/lon
     """
-    return await get_current_weather(city)
+    if lat is not None and lon is not None:
+        # Usar coordenadas para mayor precisión
+        return await get_current_weather_by_coords(lat, lon)
+    else:
+        # Fallback a nombre de ciudad
+        return await get_current_weather(city)
 
 @app.get("/api/stats")
 async def stats_endpoint(db: Session = Depends(get_db)):
